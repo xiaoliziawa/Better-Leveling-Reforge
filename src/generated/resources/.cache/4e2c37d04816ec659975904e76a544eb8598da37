@@ -1,0 +1,4 @@
+// 1.20.1	2025-03-01T17:29:12.4246732	Tags for minecraft:block mod id betterleveling
+69c396cb051bbe9a130e6979b67065e5041b179d data/betterleveling/tags/blocks/treasure_blocks.json
+b0eb413718c2a9a979d23ddc201fcfe12e4d0274 data/minecraft/tags/blocks/mineable/pickaxe.json
+b0eb413718c2a9a979d23ddc201fcfe12e4d0274 data/minecraft/tags/blocks/needs_diamond_tool.json

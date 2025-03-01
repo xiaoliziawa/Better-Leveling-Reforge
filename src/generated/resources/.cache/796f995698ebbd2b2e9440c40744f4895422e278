@@ -1,0 +1,8 @@
+// 1.20.1	2025-03-01T17:29:12.4231006	Tags for minecraft:item mod id betterleveling
+dda2be9edce80168d557794c603297d92d2392c3 data/betterleveling/tags/items/meat.json
+59f58ea6f8b85deda96c784c66ca9699db493df3 data/betterleveling/tags/items/meat/cooked.json
+33650152b3fc76fc646e90a60387d58897913ce8 data/betterleveling/tags/items/meat/raw.json
+57f2edb98963d603a6cb636d8c62e7d92633be31 data/betterleveling/tags/items/skin.json
+09e99203266919105dfee424b9b5c8d1c2b7b6c5 data/betterleveling/tags/items/treasures/common.json
+69ac1ec42ae1b8372e2f9507b49f155946074192 data/betterleveling/tags/items/treasures/rare.json
+1bf8b43a720ca37b76c48270263e700541167659 data/betterleveling/tags/items/treasures/uncommon.json

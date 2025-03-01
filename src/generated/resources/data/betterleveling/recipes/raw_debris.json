@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "betterleveling:raw_debris_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "item": "betterleveling:raw_debris"
+  }
+}

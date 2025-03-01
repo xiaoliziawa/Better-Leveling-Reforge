@@ -1,0 +1,10 @@
+{
+  "type": "betterleveling:raw_ore_loot",
+  "conditions": [
+    {
+      "block": "minecraft:ancient_debris",
+      "condition": "minecraft:block_state_property"
+    }
+  ],
+  "generated": "betterleveling:raw_debris"
+}
