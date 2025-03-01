@@ -22,10 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 @Mixin(AbstractFurnaceBlockEntity.class)
-public class MixinAbstractFurnaceBlockEntity {
+public abstract class MixinAbstractFurnaceBlockEntity {
 
     @Shadow private int cookingProgress;
     @Shadow private int cookingTotalTime;
@@ -46,11 +45,11 @@ public class MixinAbstractFurnaceBlockEntity {
                                     Field quickCheckField = AbstractFurnaceBlockEntity.class.getDeclaredField("quickCheck");
                                     quickCheckField.setAccessible(true);
                                     RecipeManager.CachedCheck<Container, ? extends AbstractCookingRecipe> quickCheck =
-                                        (RecipeManager.CachedCheck<Container, ? extends AbstractCookingRecipe>) quickCheckField.get(pAbstractFurnaceBlockEntity);
+                                            (RecipeManager.CachedCheck<Container, ? extends AbstractCookingRecipe>) quickCheckField.get(pAbstractFurnaceBlockEntity);
 
                                     originalCookTime = quickCheck.getRecipeFor(pAbstractFurnaceBlockEntity, pLevel)
-                                        .map(AbstractCookingRecipe::getCookingTime)
-                                        .orElse(200);
+                                            .map(AbstractCookingRecipe::getCookingTime)
+                                            .orElse(200);
                                 } catch (Exception e) {
                                 }
 
@@ -65,50 +64,65 @@ public class MixinAbstractFurnaceBlockEntity {
         }
     }
 
-    @Inject(method = "serverTick", at = @At(value = "INVOKE", 
-            target = "Lnet/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity;isLit()Z", 
-            ordinal = 1))
-    private static void onServerTick(Level level, BlockPos pos, BlockState state, 
-                                   AbstractFurnaceBlockEntity furnace, CallbackInfo ci) {
-        if (level instanceof ServerLevel serverLevel) {
-            ServerPlayer nearestPlayer = findNearestPlayer(serverLevel, pos, 5.0);
-            
-            if (nearestPlayer != null) {
-                nearestPlayer.getCapability(PlayerCapabilityProvider.PLAYER_CAP).ifPresent(cap -> {
-                    Skill cookingSpeedSkill = Skills.getFrom("cooking_speed");
-                    int skillLevel = cap.getLevel(nearestPlayer, cookingSpeedSkill);
-                    
-                    if (skillLevel > 0) {
-                        float speedBonus = skillLevel * 0.05f;
-                        
-                        try {
-                            Field dataAccessField = AbstractFurnaceBlockEntity.class.getDeclaredField("dataAccess");
-                            dataAccessField.setAccessible(true);
-                            Object dataAccess = dataAccessField.get(furnace);
-                            
-                            Method getMethod = dataAccess.getClass().getMethod("get", int.class);
-                            Method setMethod = dataAccess.getClass().getMethod("set", int.class, int.class);
-                            
-                            int currentProgress = (int) getMethod.invoke(dataAccess, 2); // cookingProgress
-                            
-                            if (Math.random() < speedBonus) {
-                                setMethod.invoke(dataAccess, 2, currentProgress + 1);
-                            }
-                            
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
+    @Inject(method = "serverTick", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity;isLit()Z",
+            ordinal = 1, shift = At.Shift.AFTER))
+    private static void onServerTick(Level level, BlockPos pos, BlockState state,
+                                     AbstractFurnaceBlockEntity furnace, CallbackInfo ci) {
+        if (!(level instanceof ServerLevel)) {
+            return;
+        }
+
+        ServerLevel serverLevel = (ServerLevel) level;
+
+        final AbstractFurnaceBlockEntityAccessor accessor = (AbstractFurnaceBlockEntityAccessor) furnace;
+
+        if (!accessor.callIsLit()) {
+            return;
+        }
+
+        double checkRange = 5.0;
+        ServerPlayer nearestPlayer = null;
+        double minDistance = Double.MAX_VALUE;
+
+        for (ServerPlayer player : serverLevel.getServer().getPlayerList().getPlayers()) {
+            if (player.level() == level) {
+                double distSq = player.blockPosition().distSqr(pos);
+                if (distSq <= checkRange * checkRange && distSq < minDistance) {
+                    nearestPlayer = player;
+                    minDistance = distSq;
+                }
             }
         }
-    }
-    
-    private static ServerPlayer findNearestPlayer(ServerLevel level, BlockPos pos, double range) {
-        return level.getServer().getPlayerList().getPlayers().stream()
-                .filter(p -> p.level() == level)
-                .filter(p -> p.blockPosition().distSqr(pos) <= range * range)
-                .findFirst()
-                .orElse(null);
+
+        if (nearestPlayer == null) {
+            return;
+        }
+
+        final ServerPlayer player = nearestPlayer;
+
+        player.getCapability(PlayerCapabilityProvider.PLAYER_CAP).ifPresent(cap -> {
+            Skill cookingSpeedSkill = Skills.getFrom("cooking_speed");
+
+            if (cookingSpeedSkill == null) {
+                return;
+            }
+
+            int skillLevel = cap.getLevel(player, cookingSpeedSkill);
+
+            if (skillLevel > 0) {
+                double speedBonus = skillLevel * 0.10;
+
+                if (Math.random() < speedBonus) {
+                    int currentProgress = accessor.getProgress();
+                    int totalTime = accessor.getTotalTime();
+
+                    if (currentProgress < totalTime - 1) {
+                    } else {
+                        accessor.setProgress(totalTime - 1);
+                    }
+                }
+            }
+        });
     }
 }
