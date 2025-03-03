@@ -21,13 +21,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.lang.reflect.Field;
-
 @Mixin(AbstractFurnaceBlockEntity.class)
 public abstract class MixinAbstractFurnaceBlockEntity {
 
-    @Shadow private int cookingProgress;
-    @Shadow private int cookingTotalTime;
+    @Shadow private RecipeManager.CachedCheck<Container, ? extends AbstractCookingRecipe> quickCheck;
 
     @Inject(at = @At("HEAD"), method = "getTotalCookTime", cancellable = true)
     private static void getModifiedCookTime(Level pLevel, AbstractFurnaceBlockEntity pAbstractFurnaceBlockEntity, CallbackInfoReturnable<Integer> pCallbackInfoReturnable) {
@@ -41,17 +38,11 @@ public abstract class MixinAbstractFurnaceBlockEntity {
                             if (currentLevel > 0) {
                                 int originalCookTime = 200;
 
-                                try {
-                                    Field quickCheckField = AbstractFurnaceBlockEntity.class.getDeclaredField("quickCheck");
-                                    quickCheckField.setAccessible(true);
-                                    RecipeManager.CachedCheck<Container, ? extends AbstractCookingRecipe> quickCheck =
-                                            (RecipeManager.CachedCheck<Container, ? extends AbstractCookingRecipe>) quickCheckField.get(pAbstractFurnaceBlockEntity);
-
-                                    originalCookTime = quickCheck.getRecipeFor(pAbstractFurnaceBlockEntity, pLevel)
-                                            .map(AbstractCookingRecipe::getCookingTime)
-                                            .orElse(200);
-                                } catch (Exception e) {
-                                }
+                                // 使用quickCheck字段获取烹饪时间
+                                MixinAbstractFurnaceBlockEntity mixinThis = (MixinAbstractFurnaceBlockEntity)(Object)pAbstractFurnaceBlockEntity;
+                                originalCookTime = mixinThis.quickCheck.getRecipeFor(pAbstractFurnaceBlockEntity, pLevel)
+                                        .map(AbstractCookingRecipe::getCookingTime)
+                                        .orElse(200);
 
                                 double currentBonus = 1.0D - skill.getCurrentBonus(currentLevel);
                                 int modifiedCookTime = Math.toIntExact(Math.round(originalCookTime * currentBonus));
@@ -69,11 +60,9 @@ public abstract class MixinAbstractFurnaceBlockEntity {
             ordinal = 1, shift = At.Shift.AFTER))
     private static void onServerTick(Level level, BlockPos pos, BlockState state,
                                      AbstractFurnaceBlockEntity furnace, CallbackInfo ci) {
-        if (!(level instanceof ServerLevel)) {
+        if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
-
-        ServerLevel serverLevel = (ServerLevel) level;
 
         final AbstractFurnaceBlockEntityAccessor accessor = (AbstractFurnaceBlockEntityAccessor) furnace;
 
@@ -102,24 +91,20 @@ public abstract class MixinAbstractFurnaceBlockEntity {
         final ServerPlayer player = nearestPlayer;
 
         player.getCapability(PlayerCapabilityProvider.PLAYER_CAP).ifPresent(cap -> {
-            Skill cookingSpeedSkill = Skills.getFrom("cooking_speed");
-
-            if (cookingSpeedSkill == null) {
-                return;
-            }
+            Skill cookingSpeedSkill = Skills.COOKING_SPEED.get();
 
             int skillLevel = cap.getLevel(player, cookingSpeedSkill);
 
             if (skillLevel > 0) {
-                double speedBonus = skillLevel * 0.10;
+                double speedBonus = cookingSpeedSkill.getCurrentBonus(skillLevel);
 
                 if (Math.random() < speedBonus) {
                     int currentProgress = accessor.getProgress();
                     int totalTime = accessor.getTotalTime();
 
                     if (currentProgress < totalTime - 1) {
-                    } else {
-                        accessor.setProgress(totalTime - 1);
+                        // 增加额外的烹饪进度
+                        accessor.setProgress(currentProgress + 1);
                     }
                 }
             }
