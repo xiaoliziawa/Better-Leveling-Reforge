@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "darkorg.betterleveling.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "betterleveling.refmap.json",
+  "mixins": [
+    "AbstractFurnaceBlockEntityAccessor",
+    "MixinAbstractFurnaceBlockEntity",
+    "MixinServerPlayerEntity"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

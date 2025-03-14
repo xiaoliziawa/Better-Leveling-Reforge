@@ -30,6 +30,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraftforge.client.gui.widget.ExtendedButton;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class SpecializationsScreen extends Screen {
     private static final ImmutableList<Specialization> SPECIALIZATIONS = Specializations.getAll();
     private final int imageWidth = 176;
@@ -120,6 +122,17 @@ public class SpecializationsScreen extends Screen {
         for (Renderable renderable : this.renderables) {
             renderable.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         }
+
+        // tooltip 渲染层bug fix
+        for (Renderable renderable : this.renderables) {
+            if (renderable instanceof SpecializationButton button && button.isHovered()) {
+                this.onSpecializationTooltip(pGuiGraphics, this.font, pMouseX, pMouseY);
+                break;
+            } else if (renderable instanceof SkillButton button && button.isHovered()) {
+                this.onSkillTooltip(button, pGuiGraphics, this.font, pMouseX, pMouseY);
+                break;
+            }
+        }
     }
 
     private void onValueChange(Specialization pSpecialization) {
@@ -127,7 +140,28 @@ public class SpecializationsScreen extends Screen {
     }
 
     private void onSpecializationTooltip(GuiGraphics pGuiGraphics, Font pFont, int pMouseX, int pMouseY) {
-        pGuiGraphics.renderComponentTooltip(pFont, SpecializationUtil.getTooltip(this.specialization, this.isUnlocked, this.canUnlock), pMouseX, pMouseY);
+        List<Component> tooltipLines = SpecializationUtil.getTooltip(this.specialization, this.isUnlocked, this.canUnlock);
+        
+        // more tooltip fix
+        int tooltipWidth = 0;
+        for (Component line : tooltipLines) {
+            int lineWidth = pFont.width(line);
+            tooltipWidth = Math.max(tooltipWidth, lineWidth);
+        }
+        int tooltipHeight = tooltipLines.size() * (pFont.lineHeight + 2) - 2;
+        
+        int adjustedX = pMouseX;
+        int adjustedY = pMouseY - tooltipHeight - 12;
+        
+        if (adjustedX + tooltipWidth + 12 > this.width) {
+            adjustedX = this.width - tooltipWidth - 12;
+        }
+        
+        if (adjustedY < 0) {
+            adjustedY = pMouseY + 12;
+        }
+        
+        pGuiGraphics.renderComponentTooltip(pFont, tooltipLines, adjustedX, adjustedY);
     }
 
     private void onUnlock(Button pButton) {
