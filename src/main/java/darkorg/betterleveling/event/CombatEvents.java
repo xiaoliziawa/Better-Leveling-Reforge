@@ -126,7 +126,7 @@ public class CombatEvents {
                 if (SkillUtil.hasUnlocked(capability, player, Skills.IRON_SKIN.get())) {
                     int currentLevel = capability.getLevel(player, Skills.IRON_SKIN.get());
                     if (currentLevel > 0) {
-                        event.setAmount(event.getAmount() * (float) Skills.IRON_SKIN.get().getCurrentBonus(currentLevel));
+                        event.setAmount(event.getAmount() * (1.0f - (float) Skills.IRON_SKIN.get().getCurrentBonus(currentLevel)));
                     }
                 }
             });
